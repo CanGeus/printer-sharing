@@ -1,0 +1,126 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20261110214346
+Username: DESKTOP-CODBSM9\admin
+RunAs User: DESKTOP-CODBSM9\admin
+Configuration Name: 
+Machine: DESKTOP-CODBSM9 (Microsoft Windows NT 10.0.19045.0)
+Host Application: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+Process ID: 9772
+PSVersion: 5.1.19041.6456
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.19041.6456
+BuildVersion: 10.0.19041.6456
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+[INFO] Sistem
+ - Microsoft Windows 10 Pro build 19045 (64-bit)
+[INFO] PowerShell
+ - 5.1.19041.6456
+[INFO] Komputer
+ - DESKTOP-CODBSM9  ->  \\DESKTOP-CODBSM9\<share>
+[OK] Profil: Network 4
+ - Sudah Private
+[OK] Layanan Spooler
+ - Sudah jalan
+[OK] Layanan LanmanServer
+ - Sudah jalan
+[OK] Layanan FDResPub
+ - Automatic / Running
+[OK] Layanan fdPHost
+ - Manual / Running
+[OK] Layanan SSDPSRV
+ - Automatic / Running
+[OK] Layanan upnphost
+ - Manual / Running
+[OK] SMB2
+ - Sudah aktif
+[INFO] SMB1
+ - Nonaktif (sesuai rekomendasi)
+[OK] Firewall: File and Printer Sharing
+ - 17 rule diaktifkan
+[OK] Firewall: Network Discovery
+ - 15 rule diaktifkan
+
+=== Fix kompatibilitas printer legacy ===
+
+[1/2] Mengizinkan RPC otentikasi lama (fix 0x0000011b)
+Confirm
+Are you sure you want to perform this action?
+Performing the operation "Set RpcAuthnLevelPrivacyEnabled = 0" on target "HKLM:\SYSTEM\CurrentControlSet\Control\Print\RpcAuthnLevelPrivacyEnabled".
+&Yes  Yes to &All  &No  No to A&ll  &Suspend
+Y
+      RpcAuthnLevelPrivacyEnabled = 0
+[2/2] Point and Print policy (fix 0x00000bc4 / 0x0000007e)
+Confirm
+Are you sure you want to perform this action?
+Performing the operation "Create registry key" on target "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint".
+&Yes  Yes to &All  &No  No to A&ll  &Suspend
+Y
+Confirm
+Are you sure you want to perform this action?
+Performing the operation "Set RestrictDriverInstallationToAdministrators = 0" on target "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint\RestrictDriverInstallationToAdministrators".
+&Yes  Yes to &All  &No  No to A&ll  &Suspend
+Y
+      RestrictDriverInstallationToAdministrators = 0
+Confirm
+Are you sure you want to perform this action?
+Performing the operation "Set NoWarningNoElevationOnInstall = 1" on target "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint\NoWarningNoElevationOnInstall".
+&Yes  Yes to &All  &No  No to A&ll  &Suspend
+Y
+      NoWarningNoElevationOnInstall = 1
+Confirm
+Are you sure you want to perform this action?
+Performing the operation "Set UpdatePromptSettings = 2" on target "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint\UpdatePromptSettings".
+&Yes  Yes to &All  &No  No to A&ll  &Suspend
+Y
+      UpdatePromptSettings = 2
+Confirm
+Are you sure you want to perform this action?
+Performing the operation "Restart service" on target "Spooler".
+&Yes  Yes to &All  &No  No to A&ll  &Suspend
+Y
+WARNING: Waiting for service 'Print Spooler (Spooler)' to start...
+
+Spooler direstart agar perubahan RPC berlaku.
+
+Selesai. 4 nilai registry diproses.
+Backup: C:\Users\admin\printer-share\logs\backup-20261110-214346.json
+
+[OK] Kompatibilitas Win7
+ - Fix legacy diproses (lihat baris di atas)
+PS>TerminatingError(): "Printer 'EPSON L3210 Series' tidak ditemukan. Jalankan dengan -ListPrinters untuk melihat daftar."
+[FAIL] Fatal
+ - Printer 'EPSON L3210 Series' tidak ditemukan. Jalankan dengan -ListPrinters untuk melihat daftar.
+
+================ RINGKASAN ================
+
+Step                               Status Detail                                                                                           
+----                               ------ ------                                                                                           
+Sistem                             INFO   Microsoft Windows 10 Pro build 19045 (64-bit)                                                    
+PowerShell                         INFO   5.1.19041.6456                                                                                   
+Komputer                           INFO   DESKTOP-CODBSM9  ->  \\DESKTOP-CODBSM9\<share>                                                   
+Profil: Network 4                  OK     Sudah Private                                                                                    
+Layanan Spooler                    OK     Sudah jalan                                                                                      
+Layanan LanmanServer               OK     Sudah jalan                                                                                      
+Layanan FDResPub                   OK     Automatic / Running                                                                              
+Layanan fdPHost                    OK     Manual / Running                                                                                 
+Layanan SSDPSRV                    OK     Automatic / Running                                                                              
+Layanan upnphost                   OK     Manual / Running                                                                                 
+SMB2                               OK     Sudah aktif                                                                                      
+SMB1                               INFO   Nonaktif (sesuai rekomendasi)                                                                    
+Firewall: File and Printer Sharing OK     17 rule diaktifkan                                                                               
+Firewall: Network Discovery        OK     15 rule diaktifkan                                                                               
+Kompatibilitas Win7                OK     Fix legacy diproses (lihat baris di atas)                                                        
+Fatal                              FAIL   Printer 'EPSON L3210 Series' tidak ditemukan. Jalankan dengan -ListPrinters untuk melihat daftar.
+Log     : C:\Users\admin\printer-share\logs\host-20261110-214346.log
+Backup  : C:\Users\admin\printer-share\logs\backup-20261110-214346.json
+Rollback: .\05-Rollback.ps1 -BackupFile "C:\Users\admin\printer-share\logs\backup-20261110-214346.json"
+
+**********************
+Windows PowerShell transcript end
+End time: 20261110214559
+**********************
