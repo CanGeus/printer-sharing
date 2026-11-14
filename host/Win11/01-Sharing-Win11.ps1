@@ -89,15 +89,16 @@ if ($ListPrinters) {
     Write-Host ''
     Write-Host 'Printer di komputer ini:' -ForegroundColor Cyan
     Get-Printer |
-        Select-Object Name, DriverName,
-            @{ n = 'Port'; e = {
-                $p = [string]$_.PortName
-                if ($p.StartsWith('\\')) { '<remote> ' + $p }
-                elseif ($p.Length -gt 40) { $p.Substring(0, 40) + '...' }
-                else { $p }
-            } },
-            Type, Shared, ShareName |
-        Format-Table -AutoSize | Out-String -Width 200 | Write-Host
+    Select-Object Name, DriverName,
+    @{ n = 'Port'; e = {
+            $p = [string]$_.PortName
+            if ($p.StartsWith('\\')) { '<remote> ' + $p }
+            elseif ($p.Length -gt 40) { $p.Substring(0, 40) + '...' }
+            else { $p }
+        } 
+    },
+    Type, Shared, ShareName |
+    Format-Table -AutoSize | Out-String -Width 200 | Write-Host
     Write-Host 'Kandidat share: Type = Local dan Port USBxxx / LPTx / DOT4 / TCPIP.' -ForegroundColor Gray
     Write-Host ''
     exit 0
@@ -265,7 +266,7 @@ function Invoke-Main {
 
     $wpp = $null
     foreach ($k in @('HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP',
-                     'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print')) {
+            'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print')) {
         $v = Get-ItemProperty -LiteralPath $k -Name 'WindowsProtectedPrintMode' -ErrorAction SilentlyContinue
         if ($null -ne $v) { $wpp = $v.WindowsProtectedPrintMode; break }
     }
@@ -367,9 +368,9 @@ function Invoke-Main {
     # 7. Pilih printer
     $excluded = 'Microsoft Print to PDF|Microsoft XPS Document Writer|^Fax$|OneNote|Root Print Queue|Send To'
     $candidates = @(Get-Printer | Where-Object {
-        $_.Type -eq 'Local' -and $_.Name -notmatch $excluded -and
-        $_.PortName -notmatch '^\\\\' -and $_.PortName -notmatch '^(PORTPROMPT:|SHRFAX:|nul:|FILE:)'
-    })
+            $_.Type -eq 'Local' -and $_.Name -notmatch $excluded -and
+            $_.PortName -notmatch '^\\\\' -and $_.PortName -notmatch '^(PORTPROMPT:|SHRFAX:|nul:|FILE:)'
+        })
 
     if ($PrinterName) {
         $printer = Get-Printer -Name $PrinterName -ErrorAction SilentlyContinue
