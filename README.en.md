@@ -30,6 +30,7 @@ Specifically built to eliminate recurring Windows printer sharing errors caused 
 - [Compatibility Matrix (Host × Client)](#-compatibility-matrix-host--client)
 - [Directory Structure](#-directory-structure)
 - [Prerequisites](#-prerequisites)
+- [Quick Start (Interactive Menu)](#-quick-start-interactive-menu)
 - [Quick Start Guide](#-quick-start-guide)
   - [Step 1: Setup on the Host PC](#step-1--setup-on-the-host-pc)
   - [Step 2: Connect from Client PCs](#step-2--connect-from-client-pcs)
@@ -72,6 +73,8 @@ Always run the script that matches the **Client's OS** (not the Host's OS):
 
 ```text
 printer-share-toolkit/
+├── Menu.cmd                      # Interactive menu launcher (double-click, auto-Administrator)
+├── Menu.ps1                      # Menu logic (PowerShell 2.0+ compatible)
 ├── host/                         # Scripts to execute on the PC physically connected to the printer
 │   ├── Win7/
 │   │   ├── 01-Sharing-Win7.ps1   # PowerShell 2.0 compatible
@@ -116,6 +119,39 @@ printer-share-toolkit/
 3. **Special Windows 11 Note (Protected Print Mode)**:
    If your Host runs Windows 11, ensure *Windows Protected Print Mode* is turned off:
    Go to `Settings` → `Bluetooth & devices` → `Printers & scanners` → turn off **Windows protected print mode**.
+
+---
+
+## 🚀 Quick Start (Interactive Menu)
+
+Don't want to type long PowerShell commands? Use the **interactive menu** instead:
+
+1. Open this project folder.
+2. Double-click **`Menu.cmd`** (or type `Menu.cmd` in Command Prompt).
+3. Choose **Yes** on the *User Account Control* (UAC) prompt — the menu requests Administrator rights automatically.
+4. Pick a menu number, then answer the short prompts.
+
+```text
+============================================================
+                 PRINTER SHARING TOOLKIT
+============================================================
+  OS ini : Windows 10 64-bit
+
+   1. HOST      - Bagikan printer dari PC ini
+   2. KLIEN     - Sambungkan ke printer yang dibagikan
+   3. DIAGNOSA  - Cek masalah sharing (read-only)
+   4. PERBAIKAN - Fix kompatibilitas Windows 7
+   5. ROLLBACK  - Kembalikan pengaturan host
+   0. Keluar
+```
+
+The menu detects your Windows version (7 / 10 / 11) and picks the right script, so you never have to remember parameters like `-PrinterName`, `-Server`, `-ShareName`, or `-AllowLegacyWin7`.
+
+> [!TIP]
+> - **HOST**: choose `1` → `2` to share a printer. Just pick the printer from the list and answer prompts such as *"Are there Windows 7 clients?"*.
+> - **CLIENT**: choose `2` → `2` to connect. For Windows 7 32-bit, use the *LocalPort* option and provide the `.inf` driver path.
+> - **DIAGNOSTICS**: choose `3` (safe, changes nothing).
+> - The menu only **wraps** the original scripts in `host\`, `client\`, and `tools\`; manual PowerShell usage below still works exactly as before.
 
 ---
 
