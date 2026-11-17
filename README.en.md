@@ -10,6 +10,8 @@
   <img src="https://img.shields.io/badge/PowerShell-2.0%20%7C%205.1+-blue?logo=powershell" alt="PowerShell Version" />
   <img src="https://img.shields.io/badge/Protocol-SMB2%20(No%20SMB1)-brightgreen" alt="Protocol SMB2" />
   <img src="https://img.shields.io/badge/Architecture-x86%20%7C%20x64-orange" alt="Architecture" />
+  <img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version" />
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License MIT" />
 </p>
 
 A PowerShell and Batch automation toolkit designed to share a locally attached **USB printer** from a Host PC to other Client PCs across a local network reliably and securely using **SMB2 (no SMB1 required)**.
@@ -38,6 +40,7 @@ Specifically built to eliminate recurring Windows printer sharing errors caused 
 - [Rollback (Restore Defaults)](#-rollback-restore-defaults)
 - [Common Troubleshooting & Error Codes](#-common-troubleshooting--error-codes)
 - [Security Principles](#-security-principles)
+- [Development & Testing](#-development--testing)
 
 ---
 
@@ -100,7 +103,13 @@ printer-share-toolkit/
 │   ├── 03-Test-PrinterShare.ps1  # Non-destructive diagnostic auditor (Read-only)
 │   ├── 04-Fix-LegacyCompat.ps1   # Standalone legacy Win7 compatibility patcher
 │   ├── 05-Rollback.ps1           # Rollback changes on Windows 10/11 Hosts
-│   └── 05-Rollback-Win7.ps1      # Rollback changes on Windows 7 Hosts
+│   ├── 05-Rollback-Win7.ps1      # Rollback changes on Windows 7 Hosts
+│   └── dev/
+│       └── Test-Scripts.ps1      # Syntax, PS 2.0 compatibility, and lint checks
+├── .github/workflows/ci.yml      # CI: automated lint on push / pull request
+├── CHANGELOG.md                  # Change history
+├── VERSION                       # Application version
+├── LICENSE                       # MIT License
 ├── README.md                     # Indonesian Documentation
 └── README.en.md                  # English Documentation
 ```
@@ -315,6 +324,32 @@ To revert all modifications back to their original state:
 2. **Opt-in Legacy Compatibility**: Compatibility relaxations such as `-AllowLegacyWin7` and `-AllowGuest` are strictly opt-in flags.
 3. **Driver Isolation via LocalPort**: 32-bit clients use local vendor drivers rather than pulling unsigned or mismatched drivers from the Host.
 4. **Complete Auditability & Rollback**: Every registry change, firewall rule adjustment, and service configuration is logged and fully reversible.
+
+---
+
+## 🧪 Development & Testing
+
+Before changing or adding scripts, run the quality checks:
+
+```powershell
+.\tools\dev\Test-Scripts.ps1
+```
+
+It performs three checks:
+
+1. **Syntax** - parses every `.ps1` file to ensure there are no errors.
+2. **PowerShell 2.0 compatibility** - files starting with `#Requires -Version 2.0`
+   (menu, Win7 Host, Win7 Client, Win7 Rollback) must avoid PS 3.0+ constructs
+   (e.g. `[ordered]`, `Get-CimInstance`, `$PSScriptRoot`, `ConvertFrom-Json`)
+   so they keep working on Windows 7.
+3. **Lint** - runs `PSScriptAnalyzer` with `PSScriptAnalyzerSettings.psd1`
+   (when the module is installed).
+
+Use `-FailOnWarning` to be stricter (warnings count as failures), or
+`-SkipLint` to skip the lint stage.
+
+GitHub Actions CI (`.github/workflows/ci.yml`) runs these checks automatically
+on every `push` and `pull request`.
 
 ---
 

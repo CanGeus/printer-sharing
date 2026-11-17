@@ -24,6 +24,17 @@ $ErrorActionPreference = 'Continue'
 # ---------------------------------------------------------------------------
 $Script:Root = Split-Path -Parent $MyInvocation.MyCommand.Definition
 
+# Versi aplikasi (dibaca dari file VERSION; tetap kompatibel PS 2.0)
+$Script:Version = '1.0.0'
+$Script:VersionFile = Join-Path $Script:Root 'VERSION'
+if (Test-Path -LiteralPath $Script:VersionFile) {
+    try {
+        $firstLine = Get-Content -LiteralPath $Script:VersionFile | Select-Object -First 1
+        if ($firstLine) { $Script:Version = ([string]$firstLine).Trim() }
+    }
+    catch { }
+}
+
 # ---------------------------------------------------------------------------
 # Deteksi OS & arsitektur
 # ---------------------------------------------------------------------------
@@ -224,7 +235,7 @@ function Show-MainMenu {
     Clear-Host
     Write-Host ''
     Write-Host '============================================================' -ForegroundColor Cyan
-    Write-Host '                 PRINTER SHARING TOOLKIT' -ForegroundColor Cyan
+    Write-Host ('                 PRINTER SHARING TOOLKIT  v' + $Script:Version) -ForegroundColor Cyan
     Write-Host '============================================================' -ForegroundColor Cyan
     Write-Host ('  OS ini : ' + (Get-OsLabel) + ' ' + $Script:ArchBits) -ForegroundColor Gray
     Write-Host ''
