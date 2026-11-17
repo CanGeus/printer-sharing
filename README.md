@@ -10,6 +10,8 @@
   <img src="https://img.shields.io/badge/PowerShell-2.0%20%7C%205.1+-blue?logo=powershell" alt="PowerShell Version" />
   <img src="https://img.shields.io/badge/Protocol-SMB2%20(No%20SMB1)-brightgreen" alt="Protocol SMB2" />
   <img src="https://img.shields.io/badge/Architecture-x86%20%7C%20x64-orange" alt="Architecture" />
+  <img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version" />
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License MIT" />
 </p>
 
 Perkakas otomasi PowerShell dan Batch untuk membagikan printer **USB** yang terhubung di satu PC (Host) agar dapat digunakan oleh PC lain (Klien) di jaringan lokal yang sama secara stabil dan aman melalui **SMB2 (tanpa SMB1)**.
@@ -38,6 +40,7 @@ Dibuat khusus untuk mengatasi error printer sharing Windows yang sering muncul a
 - [Rollback (Kembalikan Pengaturan)](#-rollback-kembalikan-pengaturan)
 - [Tabel Solusi Error Umum](#-tabel-solusi-error-umum)
 - [Prinsip Keamanan](#-prinsip-keamanan)
+- [Pengembangan & Pengujian](#-pengembangan--pengujian)
 
 ---
 
@@ -100,7 +103,13 @@ printer-share-toolkit/
 │   ├── 03-Test-PrinterShare.ps1  # Tool diagnosa mandiri (Read-only, aman dijalankan)
 │   ├── 04-Fix-LegacyCompat.ps1   # Script standalone pemulihan kompatibilitas Win7
 │   ├── 05-Rollback.ps1           # Mengembalikan perubahan Host Windows 10/11
-│   └── 05-Rollback-Win7.ps1      # Mengembalikan perubahan Host Windows 7
+│   ├── 05-Rollback-Win7.ps1      # Mengembalikan perubahan Host Windows 7
+│   └── dev/
+│       └── Test-Scripts.ps1      # Cek sintaks, kompatibilitas PS 2.0, dan lint
+├── .github/workflows/ci.yml      # CI: lint otomatis saat push / pull request
+├── CHANGELOG.md                  # Riwayat perubahan
+├── VERSION                       # Nomor versi aplikasi
+├── LICENSE                       # Lisensi MIT
 ├── README.md                     # Dokumentasi Bahasa Indonesia
 └── README.en.md                  # English Documentation
 ```
@@ -315,6 +324,32 @@ Untuk mengembalikan konfigurasi Host ke kondisi awal:
 2. **Opt-in Compatibility**: Opsi pelonggaran keamanan seperti `-AllowLegacyWin7` dan `-AllowGuest` bersifat **opsional per switch**, dan tidak aktif secara default.
 3. **Isolasi Driver LocalPort**: Klien 32-bit tidak dipaksa mengambil driver dari Host 64-bit, melainkan memuat driver lokal terisolasi untuk stabilitas spooler.
 4. **Audit & Rollback Penuh**: Seluruh modifikasi registry, status layanan, dan rule firewall tersimpan dalam file cadangan JSON / teks yang dapat dipulihkan sewaktu-waktu.
+
+---
+
+## 🧪 Pengembangan & Pengujian
+
+Sebelum mengubah atau menambah script, jalankan pemeriksa kualitas:
+
+```powershell
+.\tools\dev\Test-Scripts.ps1
+```
+
+Pemeriksa ini melakukan tiga hal:
+
+1. **Sintaks** - mem-parse semua file `.ps1` untuk memastikan tidak ada error.
+2. **Kompatibilitas PowerShell 2.0** - file yang diawali `#Requires -Version 2.0`
+   (Menu, Host Win7, Klien Win7, Rollback Win7) tidak boleh memakai konstruksi
+   PS 3.0+ (mis. `[ordered]`, `Get-CimInstance`, `$PSScriptRoot`, `ConvertFrom-Json`),
+   agar tetap berjalan di Windows 7.
+3. **Lint** - menjalankan `PSScriptAnalyzer` dengan `PSScriptAnalyzerSettings.psd1`
+   (bila modul terpasang).
+
+Gunakan `-FailOnWarning` untuk memperketat (warning dianggap gagal), atau
+`-SkipLint` untuk melewati tahap lint.
+
+CI GitHub Actions (`.github/workflows/ci.yml`) menjalankan pemeriksaan ini
+otomatis pada setiap `push` dan `pull request`.
 
 ---
 
