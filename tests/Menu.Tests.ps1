@@ -2,6 +2,14 @@
 <#
 .SYNOPSIS
     Test untuk Menu.ps1 (logika menu, tanpa menjalankan menunya).
+
+.DESCRIPTION
+    Catatan soal versi Pester:
+
+      - Pester 3.x menjalankan setiap It di scope yang sama dengan file test,
+        jadi setup di top-level sudah cukup.
+      - Pester 5+ menjalankan setiap It di scope terpisah, sehingga setup
+        (dot-source) diulang lagi di dalam BeforeAll.
 #>
 
 $script:RepoRoot = Split-Path -Parent $PSScriptRoot
@@ -10,18 +18,26 @@ $script:RepoRoot = Split-Path -Parent $PSScriptRoot
 # Menu.ps1 sengaja tidak dijalankan saat di-dot-source, jadi aman dimuat di sini.
 . (Join-Path $script:RepoRoot 'Menu.ps1')
 
+if ((Get-PesterMajorVersion) -ge 5) {
+    BeforeAll {
+        $RepoRoot = Split-Path -Parent $PSScriptRoot
+        . (Join-Path $PSScriptRoot 'TestHelpers.ps1')
+        . (Join-Path $RepoRoot 'Menu.ps1')
+    }
+}
+
 Describe 'Menu.ps1 - pemuatan' {
     It 'tidak menjalankan menu saat di-dot-source' {
         Assert-NotNull (Get-Command -Name 'Start-Menu' -ErrorAction SilentlyContinue) 'Fungsi Start-Menu tidak terdefinisi.'
     }
 
     It 'membaca versi dari file VERSION' {
-        $expected = (Get-Content -LiteralPath (Join-Path $script:RepoRoot 'VERSION') -TotalCount 1).Trim()
+        $expected = (Get-Content -LiteralPath (Join-Path $RepoRoot 'VERSION') -TotalCount 1).Trim()
         Assert-Equal $Script:Version $expected
     }
 
     It 'menyimpan root di folder repositori' {
-        Assert-Equal $Script:Root $script:RepoRoot
+        Assert-Equal $Script:Root $RepoRoot
     }
 }
 

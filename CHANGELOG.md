@@ -20,6 +20,13 @@ dan proyek ini memakai [Semantic Versioning](https://semver.org/lang/id/).
 - **`.editorconfig`** untuk menyeragamkan encoding, indentasi, dan akhir baris antar editor.
 - CI kini juga menjalankan test Pester (`test` job) selain lint.
 
+### Fixed
+
+- Test Pester kini kompatibel dengan Pester 5/6 (yang dipakai CI), bukan hanya
+  Pester 3.x: setup dipindah ke `BeforeAll` karena Pester 5+ menjalankan setiap
+  `It` di scope terpisah.
+- CI memasang Pester pada rentang versi 5.0.0-6.99.99 agar hasilnya dapat diulang.
+
 ## [1.0.0] - 2026-11-17
 
 Rilis publik pertama.

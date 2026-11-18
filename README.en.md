@@ -365,7 +365,7 @@ structure, and the quality checker:
 .\tests\Run-Tests.ps1
 ```
 
-The tests run on both Pester 3.x (bundled with Windows PowerShell 5.1) and Pester 5.
+The tests run on both Pester 3.x (bundled with Windows PowerShell 5.1) and Pester 5/6.
 If Pester is not installed:
 
 ```powershell

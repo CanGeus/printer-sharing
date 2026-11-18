@@ -365,7 +365,7 @@ struktur repositori, dan pemeriksa kualitas:
 .\tests\Run-Tests.ps1
 ```
 
-Test berjalan di Pester 3.x (bawaan Windows PowerShell 5.1) maupun Pester 5.
+Test berjalan di Pester 3.x (bawaan Windows PowerShell 5.1) maupun Pester 5/6.
 Bila Pester belum terpasang:
 
 ```powershell

@@ -41,6 +41,11 @@ if ($pesterVersion.Major -ge 5) {
 $result = Invoke-Pester @params
 
 Write-Host ''
+if ($result.TotalCount -eq 0) {
+    Write-Host 'HASIL: GAGAL (tidak ada test yang berjalan - cek error discovery di atas)' -ForegroundColor Red
+    exit 1
+}
+
 if ($result.FailedCount -gt 0) {
     Write-Host ('HASIL: GAGAL ({0} dari {1} test gagal)' -f $result.FailedCount, $result.TotalCount) -ForegroundColor Red
     exit 1
