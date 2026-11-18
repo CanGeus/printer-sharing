@@ -6,13 +6,19 @@ rem ===========================================================================
 rem  KLIEN Windows 7 - connect printer lewat batch (tanpa PowerShell)
 rem
 rem  Pemakaian:
-rem   02-Connect-Win7.cmd <HOST> <SHARE> [USER] [PASSWORD] [test] [repair]
+rem   02-Connect-Win7.cmd <HOST> <SHARE> [USER] [test] [repair]
 rem
 rem  Contoh:
 rem   02-Connect-Win7.cmd PC-HOST EPSON-L120
-rem   02-Connect-Win7.cmd PC-HOST EPSON-L120 printer P@ssw0rd
-rem   02-Connect-Win7.cmd PC-HOST EPSON-L120 - - test
-rem   02-Connect-Win7.cmd PC-HOST EPSON-L120 - - - repair
+rem   02-Connect-Win7.cmd PC-HOST EPSON-L120 printer
+rem   02-Connect-Win7.cmd PC-HOST EPSON-L120 - test
+rem   02-Connect-Win7.cmd PC-HOST EPSON-L120 - - repair
+rem
+rem  KEAMANAN: password TIDAK PERNAH diterima lewat command line, supaya tidak
+rem  terlihat di daftar proses (Task Manager / wmic process). Bila USER diisi,
+rem  password diminta langsung oleh "net use ... *" dan ketikannya tidak
+rem  ditampilkan. Untuk akses tanpa password (akun saat ini), kosongkan USER
+rem  atau isi dengan tanda "-".
 rem
 rem  CATATAN: ini hanya untuk Windows 7 64-bit.
 rem  Windows 7 32-bit butuh driver x86 lokal - pakai 02-Connect-Win7.ps1
@@ -22,12 +28,12 @@ rem ===========================================================================
 set "SERVER=%~1"
 set "SHARE=%~2"
 set "PUSER=%~3"
-set "PPASS=%~4"
-set "DOTEST=%~5"
-set "DOREPAIR=%~6"
+set "DOTEST=%~4"
+set "DOREPAIR=%~5"
 
 if "%SERVER%"=="" goto :usage
 if "%SHARE%"=="" goto :usage
+if /i "%PUSER%"=="-" set "PUSER="
 
 set "UNC=\\%SERVER%\%SHARE%"
 
@@ -51,8 +57,10 @@ if errorlevel 1 (
     echo       [OK]   Share host bisa dibaca
 )
 
-if not "%PUSER%"=="" if not "%PUSER%"=="-" if not "%PPASS%"=="" (
-    net use \\%SERVER%\IPC$ /user:%PUSER% %PPASS% >nul 2>&1
+rem --- Autentikasi (password tidak pernah lewat command line) ----------------
+if not "%PUSER%"=="" (
+    echo       Autentikasi sebagai "%PUSER%" ^(ketik password, tidak ditampilkan^):
+    net use \\%SERVER%\IPC$ /user:%PUSER% *
     if errorlevel 1 (
         echo       [WARN] Autentikasi gagal. Periksa user/password.
     ) else (
@@ -104,11 +112,13 @@ goto :end
 :usage
 echo.
 echo Pemakaian:
-echo   02-Connect-Win7.cmd ^<HOST^> ^<SHARE^> [USER] [PASSWORD] [test] [repair]
+echo   02-Connect-Win7.cmd ^<HOST^> ^<SHARE^> [USER] [test] [repair]
 echo.
 echo Contoh:
 echo   02-Connect-Win7.cmd PC-HOST EPSON-L120
-echo   02-Connect-Win7.cmd PC-HOST EPSON-L120 printer P@ssw0rd test
+echo   02-Connect-Win7.cmd PC-HOST EPSON-L120 printer test
+echo.
+echo Password diminta otomatis ^(tidak ditampilkan^) bila USER diisi.
 echo.
 echo Windows 7 32-bit: jalankan 02-Connect-Win7.ps1 -Mode LocalPort
 echo.

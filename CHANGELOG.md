@@ -15,10 +15,29 @@ dan proyek ini memakai [Semantic Versioning](https://semver.org/lang/id/).
   - **BAHASA** - berganti bahasa Indonesia/English; pilihan disimpan.
   - **Unshare** - berhenti membagikan printer langsung dari menu HOST.
   - Status printer yang sedang dibagikan ditampilkan di header menu.
+- **Pemeriksaan awal (*pre-check*)** sebelum setiap operasi: menu memeriksa hak
+  Administrator, versi Windows, layanan Print Spooler, ketersediaan printer,
+  konektivitas host (port 445), dan ketersediaan file backup. Bila ada masalah
+  serius, operasi dibatalkan otomatis; peringatan ringan hanya meminta konfirmasi.
+- **Verifikasi akhir otomatis** setelah operasi: menu memastikan hasilnya nyata
+  (printer benar-benar dibagikan, terpasang di klien, atau nilai registry
+  perbaikan sudah diterapkan) dan menampilkan hasilnya sebagai `[OK]`/`[WARN]`.
+- **Prompt nama pengguna** pada menu KLIEN > batch Windows 7 (password tidak
+  pernah ditanyakan/dioper lewat menu).
 - **Test Pester** (`tests/`) untuk logika menu, kelengkapan struktur repositori,
   dan pemeriksa kualitas, plus runner `tests/Run-Tests.ps1`.
 - **`.editorconfig`** untuk menyeragamkan encoding, indentasi, dan akhir baris antar editor.
 - CI kini juga menjalankan test Pester (`test` job) selain lint.
+
+### Security
+
+- **Password tidak pernah lewat command line**:
+  - `client/Win7/02-Connect-Win7.cmd` tidak lagi menerima argumen password;
+    bila pengguna host diisi, password diminta langsung oleh `net use ... *`
+    secara tersembunyi (tidak terlihat di daftar proses).
+  - `client/Win7/02-Connect-Win7.ps1 -SaveCredential` menyimpan kredensial ke
+    Windows Credential Manager lewat API `CredWrite` (advapi32), menggantikan
+    `cmdkey /add:... /pass:...` yang membocorkan password ke daftar proses.
 
 ### Fixed
 

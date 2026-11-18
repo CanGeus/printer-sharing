@@ -165,6 +165,39 @@ $Script:Strings = @{
 '@
         qOpenReadme  = 'Buka README di aplikasi default?'
 
+        qUser          = 'Nama pengguna host (opsional, Enter = akun saat ini)'
+        batchPassNote  = 'Password (bila perlu) diminta langsung oleh script batch dan tidak ditampilkan.'
+
+        pfHeader            = 'PEMERIKSAAN AWAL'
+        pfAdmin             = 'Hak Administrator'
+        pfOs                = 'Sistem operasi'
+        pfSpooler           = 'Layanan Print Spooler'
+        pfPrinter           = 'Printer lokal'
+        pfServer            = 'Konektivitas host'
+        pfBackup            = 'File backup'
+        pfRunning           = 'berjalan'
+        pfStopped           = 'berhenti'
+        pfSpoolerHint       = 'Coba jalankan: Start-Service Spooler'
+        pfNotAdmin          = 'Operasi share/perbaikan/rollback butuh Administrator.'
+        pfOsWin8            = 'Windows 8/8.1 belum resmi didukung.'
+        pfNoPrinter         = 'Tidak ada printer lokal yang terdeteksi.'
+        pfPrinterFound      = '{0} printer terdeteksi.'
+        pfServerOk          = 'Port 445 (SMB) terbuka di {0}.'
+        pfServerUnreachable = 'Port 445 (SMB) tidak terjangkau di {0}.'
+        pfNoBackup          = 'Belum ada file backup/journal di folder log.'
+        pfBlocked           = 'Pemeriksaan awal menemukan masalah. Operasi dibatalkan.'
+        pfContinueAnyway    = 'Tetap lanjutkan meski ada peringatan?'
+
+        vfHeader           = 'VERIFIKASI AKHIR'
+        vfSharedOk         = 'Printer "{0}" sekarang dibagikan.'
+        vfSharedMissing    = 'Printer "{0}" belum terlihat dibagikan.'
+        vfUnsharedOk       = 'Printer "{0}" tidak lagi dibagikan.'
+        vfUnsharedMissing  = 'Printer "{0}" masih terlihat dibagikan.'
+        vfConnectedOk      = 'Printer "{0}" terpasang di PC ini.'
+        vfConnectedMissing = 'Printer "{0}" belum terpasang.'
+        vfFixOk            = 'Perbaikan kompatibilitas sudah diterapkan (RpcAuthnLevelPrivacyEnabled = 0).'
+        vfFixMissing       = 'Nilai registry perbaikan belum terlihat.'
+
         langHeader   = 'BAHASA'
         langCurrent  = 'Bahasa saat ini: {0}'
         langName     = 'Indonesia'
@@ -289,6 +322,39 @@ $Script:Strings = @{
   The full guide is in README.md.
 '@
         qOpenReadme  = 'Open README in the default app?'
+
+        qUser          = 'Host user name (optional, Enter = current account)'
+        batchPassNote  = 'The password (if needed) is requested by the batch script directly and is not echoed.'
+
+        pfHeader            = 'PRE-CHECK'
+        pfAdmin             = 'Administrator rights'
+        pfOs                = 'Operating system'
+        pfSpooler           = 'Print Spooler service'
+        pfPrinter           = 'Local printer'
+        pfServer            = 'Host connectivity'
+        pfBackup            = 'Backup file'
+        pfRunning           = 'running'
+        pfStopped           = 'stopped'
+        pfSpoolerHint       = 'Try: Start-Service Spooler'
+        pfNotAdmin          = 'Share/repair/rollback operations require Administrator.'
+        pfOsWin8            = 'Windows 8/8.1 is not officially supported.'
+        pfNoPrinter         = 'No local printer detected.'
+        pfPrinterFound      = '{0} printer(s) detected.'
+        pfServerOk          = 'Port 445 (SMB) is open at {0}.'
+        pfServerUnreachable = 'Port 445 (SMB) is unreachable at {0}.'
+        pfNoBackup          = 'No backup/journal file in the log folder yet.'
+        pfBlocked           = 'Pre-check found problems. Operation cancelled.'
+        pfContinueAnyway    = 'Continue anyway despite warnings?'
+
+        vfHeader           = 'FINAL VERIFICATION'
+        vfSharedOk         = 'Printer "{0}" is now shared.'
+        vfSharedMissing    = 'Printer "{0}" is not shown as shared yet.'
+        vfUnsharedOk       = 'Printer "{0}" is no longer shared.'
+        vfUnsharedMissing  = 'Printer "{0}" still appears shared.'
+        vfConnectedOk      = 'Printer "{0}" is installed on this PC.'
+        vfConnectedMissing = 'Printer "{0}" is not installed yet.'
+        vfFixOk            = 'Compatibility fix is applied (RpcAuthnLevelPrivacyEnabled = 0).'
+        vfFixMissing       = 'The fix registry value is not visible yet.'
 
         langHeader   = 'LANGUAGE'
         langCurrent  = 'Current language: {0}'
@@ -444,7 +510,7 @@ function Format-ToolArgs {
 }
 
 function Invoke-Tool {
-    param([string]$Path, $ToolArgs)
+    param([string]$Path, $ToolArgs, [scriptblock]$Verify)
 
     if (-not (Test-Path -LiteralPath $Path)) {
         Write-Host ''
@@ -471,6 +537,12 @@ function Invoke-Tool {
     finally {
         # Pastikan transcript script host tidak "bocor" ke menu.
         try { Stop-Transcript | Out-Null } catch { }
+    }
+
+    # Verifikasi akhir opsional (#12): dijalankan sebelum jeda, agar hasilnya
+    # terlihat tepat setelah operasi selesai.
+    if ($Verify) {
+        try { & $Verify } catch { }
     }
 
     Pause-Menu
@@ -546,6 +618,180 @@ function Select-PrinterName {
 }
 
 # ---------------------------------------------------------------------------
+# Pemeriksaan awal (pre-check) - #11
+# ---------------------------------------------------------------------------
+function Test-TcpPort {
+    param([string]$Computer, [int]$Port, [int]$TimeoutMs = 1500)
+    $client = New-Object System.Net.Sockets.TcpClient
+    try {
+        $async = $client.BeginConnect($Computer, $Port, $null, $null)
+        if (-not $async.AsyncWaitHandle.WaitOne($TimeoutMs, $false)) { return $false }
+        $client.EndConnect($async)
+        return $true
+    }
+    catch { return $false }
+    finally { try { $client.Close() } catch { } }
+}
+
+function Test-SpoolerRunning {
+    try {
+        $svc = Get-Service -Name 'Spooler' -ErrorAction Stop
+        return ($svc.Status -eq 'Running')
+    }
+    catch { return $false }
+}
+
+function Get-LatestBackupFile {
+    $dir = Join-Path $env:ProgramData 'PrinterShare\logs'
+    if (-not (Test-Path -LiteralPath $dir)) { return $null }
+    $pattern = 'backup-*.json'
+    if ($Script:OsFamily -eq 'Win7') { $pattern = 'Win7-backup-*.txt' }
+    $files = @(Get-ChildItem -LiteralPath $dir -Filter $pattern -ErrorAction SilentlyContinue |
+               Sort-Object LastWriteTime -Descending)
+    if ($files.Count -eq 0) { return $null }
+    return $files[0]
+}
+
+function New-PreflightCheck {
+    param([string]$Key, [string]$Status, [string]$Detail = '')
+    return (New-Object PSObject -Property @{
+        Key    = $Key
+        Name   = (T $Key)
+        Status = $Status
+        Detail = $Detail
+    })
+}
+
+function Test-Preflight {
+    param([string]$Context = '', [string]$Server = '')
+
+    $checks = New-Object System.Collections.ArrayList
+
+    # 1. Hak Administrator
+    if (Test-IsAdmin) {
+        [void]$checks.Add((New-PreflightCheck 'pfAdmin' 'OK'))
+    }
+    else {
+        [void]$checks.Add((New-PreflightCheck 'pfAdmin' 'WARN' (T 'pfNotAdmin')))
+    }
+
+    # 2. Sistem operasi
+    if ($Script:OsFamily -eq 'Win8') {
+        [void]$checks.Add((New-PreflightCheck 'pfOs' 'WARN' (T 'pfOsWin8')))
+    }
+    else {
+        [void]$checks.Add((New-PreflightCheck 'pfOs' 'OK' ((Get-OsLabel) + ' ' + $Script:ArchBits)))
+    }
+
+    # 3. Layanan Print Spooler
+    if (Test-SpoolerRunning) {
+        [void]$checks.Add((New-PreflightCheck 'pfSpooler' 'OK' (T 'pfRunning')))
+    }
+    else {
+        [void]$checks.Add((New-PreflightCheck 'pfSpooler' 'FAIL' ((T 'pfStopped') + ' - ' + (T 'pfSpoolerHint'))))
+    }
+
+    # 4. Pemeriksaan khusus per konteks
+    if ($Context -eq 'Host') {
+        $count = @(Get-LocalPrinterNames).Count
+        if ($count -gt 0) {
+            [void]$checks.Add((New-PreflightCheck 'pfPrinter' 'OK' ((T 'pfPrinterFound') -f $count)))
+        }
+        else {
+            [void]$checks.Add((New-PreflightCheck 'pfPrinter' 'FAIL' (T 'pfNoPrinter')))
+        }
+    }
+
+    if ($Context -eq 'Client' -and $Server -ne '') {
+        if (Test-TcpPort -Computer $Server -Port 445) {
+            [void]$checks.Add((New-PreflightCheck 'pfServer' 'OK' ((T 'pfServerOk') -f $Server)))
+        }
+        else {
+            [void]$checks.Add((New-PreflightCheck 'pfServer' 'FAIL' ((T 'pfServerUnreachable') -f $Server)))
+        }
+    }
+
+    if ($Context -eq 'Rollback') {
+        $backup = Get-LatestBackupFile
+        if ($backup) {
+            [void]$checks.Add((New-PreflightCheck 'pfBackup' 'OK' $backup.Name))
+        }
+        else {
+            [void]$checks.Add((New-PreflightCheck 'pfBackup' 'FAIL' (T 'pfNoBackup')))
+        }
+    }
+
+    return ,$checks
+}
+
+function Show-Preflight {
+    param($Checks, [bool]$Blocking = $true)
+
+    Write-Header (T 'pfHeader')
+    $hasFail = $false
+    $hasWarn = $false
+    foreach ($c in @($Checks)) {
+        $color = 'Green'
+        if ($c.Status -eq 'WARN') { $color = 'Yellow'; $hasWarn = $true }
+        elseif ($c.Status -eq 'FAIL') { $color = 'Red'; $hasFail = $true }
+        $line = '  [{0,-4}] {1}' -f $c.Status, $c.Name
+        if ($c.Detail -ne '') { $line = $line + ' : ' + $c.Detail }
+        Write-Host $line -ForegroundColor $color
+    }
+    Write-Host ''
+
+    if (-not $Blocking) { return $true }
+
+    if ($hasFail) {
+        Write-Host ('  ' + (T 'pfBlocked')) -ForegroundColor Red
+        Pause-Menu
+        return $false
+    }
+    if ($hasWarn) {
+        return (Read-YesNo ('  ' + (T 'pfContinueAnyway')) $true)
+    }
+    return $true
+}
+
+# ---------------------------------------------------------------------------
+# Verifikasi akhir (post-check) - #12
+# ---------------------------------------------------------------------------
+function Test-SharePresent {
+    param([string]$PrinterName = '', [string]$ShareName = '')
+    foreach ($p in @(Get-SharedPrinters)) {
+        if ($PrinterName -ne '' -and $p.Name -eq $PrinterName) { return $true }
+        if ($ShareName -ne '' -and $p.ShareName -eq $ShareName) { return $true }
+    }
+    return $false
+}
+
+function Test-LocalPrinterMatch {
+    param([string]$Name = '', [string]$ShareName = '')
+    foreach ($n in @(Get-LocalPrinterNames)) {
+        if ($Name -ne '' -and $n -eq $Name) { return $true }
+        if ($ShareName -ne '' -and $n -like ('*' + $ShareName + '*')) { return $true }
+    }
+    return $false
+}
+
+function Test-CompatFixApplied {
+    try {
+        $item = Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Print' `
+                                 -Name 'RpcAuthnLevelPrivacyEnabled' -ErrorAction Stop
+        return ([int]$item.RpcAuthnLevelPrivacyEnabled -eq 0)
+    }
+    catch { return $false }
+}
+
+function Write-VerifyResult {
+    param([bool]$Ok, [string]$Message)
+    Write-Host ''
+    Write-Host ('  ' + (T 'vfHeader')) -ForegroundColor Cyan
+    if ($Ok) { Write-Host ('  [OK]   ' + $Message) -ForegroundColor Green }
+    else { Write-Host ('  [WARN] ' + $Message) -ForegroundColor Yellow }
+}
+
+# ---------------------------------------------------------------------------
 # Menu utama
 # ---------------------------------------------------------------------------
 function Show-MainMenu {
@@ -614,7 +860,17 @@ function Start-HostSharing {
         return
     }
 
-    Invoke-Tool (Get-HostScript) $toolArgs
+    if (-not (Show-Preflight (Test-Preflight -Context 'Host'))) { return }
+
+    $verify = $null
+    if (-not $DryRun) {
+        $verify = {
+            $ok = Test-SharePresent -PrinterName $printer -ShareName $share
+            if ($ok) { Write-VerifyResult $true ((T 'vfSharedOk') -f $printer) }
+            else { Write-VerifyResult $false ((T 'vfSharedMissing') -f $printer) }
+        }
+    }
+    Invoke-Tool (Get-HostScript) $toolArgs $verify
     $Script:ShareStatus = $null
 }
 
@@ -654,6 +910,8 @@ function Stop-HostSharing {
         return
     }
 
+    if (-not (Show-Preflight (Test-Preflight -Context 'Unshare'))) { return }
+
     $ok = $false
     $code = ''
     if (Get-Command Set-Printer -ErrorAction SilentlyContinue) {
@@ -679,6 +937,10 @@ function Stop-HostSharing {
     Write-Host ''
     if ($ok) { Write-Host ('  ' + (T 'unshareDone')) -ForegroundColor Green }
     else { Write-Host ('  ' + ((T 'unshareFail') -f $code)) -ForegroundColor Red }
+
+    $gone = -not (Test-SharePresent -PrinterName $target.Name -ShareName $target.ShareName)
+    if ($gone) { Write-VerifyResult $true ((T 'vfUnsharedOk') -f $target.Name) }
+    else { Write-VerifyResult $false ((T 'vfUnsharedMissing') -f $target.Name) }
 
     $Script:ShareStatus = $null
     Pause-Menu
@@ -715,6 +977,8 @@ function Show-HostMenu {
 function Start-Win7Batch {
     Clear-Host
     Write-Header (T 'clientItemBatch')
+    Write-Host ('  ' + (T 'batchPassNote')) -ForegroundColor Gray
+    Write-Host ''
 
     $server = Read-Text ('  ' + (T 'qHost'))
     if ($server -eq '') { Write-Host ('  ' + ((T 'required') -f (T 'qHost'))) -ForegroundColor Yellow; Pause-Menu; return }
@@ -722,13 +986,25 @@ function Start-Win7Batch {
     $share = Read-Text ('  ' + (T 'qShare'))
     if ($share -eq '') { Write-Host ('  ' + ((T 'required') -f (T 'qShare'))) -ForegroundColor Yellow; Pause-Menu; return }
 
+    # Password TIDAK ditanyakan/dioper di sini: script batch yang meminta langsung
+    # (net use ... *), sehingga password tidak pernah muncul di command line.
+    $user = Read-Text ('  ' + (T 'qUser'))
+    if ($user -eq '') { $user = '-' }
+
     $testStr = '-'
     if (Read-YesNo ('  ' + (T 'qTestPage')) $false) { $testStr = 'test' }
     $repairStr = '-'
     if (Read-YesNo ('  ' + (T 'clientItemRepair')) $false) { $repairStr = 'repair' }
 
+    if (-not (Show-Preflight (Test-Preflight -Context 'Client' -Server $server))) { return }
+
+    $unc = '\\' + $server + '\' + $share
     $cmdPath = Join-Path $Script:Root 'client\Win7\02-Connect-Win7.cmd'
-    Invoke-Tool $cmdPath @($server, $share, '-', '-', $testStr, $repairStr)
+    Invoke-Tool $cmdPath @($server, $share, $user, $testStr, $repairStr) {
+        $ok = Test-LocalPrinterMatch -Name $unc -ShareName $share
+        if ($ok) { Write-VerifyResult $true ((T 'vfConnectedOk') -f $unc) }
+        else { Write-VerifyResult $false ((T 'vfConnectedMissing') -f $unc) }
+    }
 }
 
 function Start-ClientConnect {
@@ -740,6 +1016,8 @@ function Start-ClientConnect {
 
     $server = Read-Text ('  ' + (T 'qHost'))
     if ($server -eq '') { Write-Host ('  ' + ((T 'required') -f (T 'qHost'))) -ForegroundColor Yellow; Pause-Menu; return }
+
+    if (-not (Show-Preflight (Test-Preflight -Context 'Client' -Server $server))) { return }
 
     if ($Action -eq 'list') {
         Invoke-Tool $scriptPath @{ Server = $server; ListRemote = $true }
@@ -767,7 +1045,12 @@ function Start-ClientConnect {
         }
     }
 
-    Invoke-Tool $scriptPath $toolArgs
+    $unc = '\\' + $server + '\' + $share
+    Invoke-Tool $scriptPath $toolArgs {
+        $ok = Test-LocalPrinterMatch -Name $unc -ShareName $share
+        if ($ok) { Write-VerifyResult $true ((T 'vfConnectedOk') -f $unc) }
+        else { Write-VerifyResult $false ((T 'vfConnectedMissing') -f $unc) }
+    }
 }
 
 function Show-ClientMenu {
@@ -824,6 +1107,9 @@ function Show-DiagMenu {
     if ($share -ne '') { $toolArgs['ShareName'] = $share }
     if ($printer -ne '') { $toolArgs['PrinterName'] = $printer }
 
+    # Diagnosa bersifat read-only, jadi pemeriksaan awal hanya sebagai info.
+    [void](Show-Preflight (Test-Preflight -Context 'Diagnose' -Server $server) -Blocking $false)
+
     Invoke-Tool (Join-Path $Script:Root 'tools\03-Test-PrinterShare.ps1') $toolArgs
 }
 
@@ -847,7 +1133,13 @@ function Show-FixMenu {
     $toolArgs = @{ AllowLegacyWin7 = $true }
     if (Read-YesNo ('  ' + (T 'qFixGuest')) $false) { $toolArgs['AllowGuest'] = $true }
 
-    Invoke-Tool (Join-Path $Script:Root 'tools\04-Fix-LegacyCompat.ps1') $toolArgs
+    if (-not (Show-Preflight (Test-Preflight -Context 'Repair'))) { return }
+
+    Invoke-Tool (Join-Path $Script:Root 'tools\04-Fix-LegacyCompat.ps1') $toolArgs {
+        $ok = Test-CompatFixApplied
+        if ($ok) { Write-VerifyResult $true (T 'vfFixOk') }
+        else { Write-VerifyResult $false (T 'vfFixMissing') }
+    }
 }
 
 # ---------------------------------------------------------------------------
@@ -881,6 +1173,8 @@ function Show-RollbackMenu {
 
     $toolArgs = @{}
     if ($file -ne '') { $toolArgs[$fileParam] = $file }
+
+    if (-not (Show-Preflight (Test-Preflight -Context 'Rollback'))) { return }
 
     Invoke-Tool $scriptPath $toolArgs
     $Script:ShareStatus = $null
