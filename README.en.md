@@ -106,7 +106,11 @@ printer-share-toolkit/
 │   ├── 05-Rollback-Win7.ps1      # Rollback changes on Windows 7 Hosts
 │   └── dev/
 │       └── Test-Scripts.ps1      # Syntax, PS 2.0 compatibility, and lint checks
-├── .github/workflows/ci.yml      # CI: automated lint on push / pull request
+├── tests/                        # Pester tests (menu, structure, quality checker)
+│   ├── Run-Tests.ps1             # Runs the whole test suite
+│   └── *.Tests.ps1
+├── .github/workflows/ci.yml      # CI: automated lint + tests on push / pull request
+├── .editorconfig                 # Writing style (encoding, indentation, line endings)
 ├── CHANGELOG.md                  # Change history
 ├── VERSION                       # Application version
 ├── LICENSE                       # MIT License
@@ -142,24 +146,30 @@ Don't want to type long PowerShell commands? Use the **interactive menu** instea
 
 ```text
 ============================================================
-                 PRINTER SHARING TOOLKIT
+                 PRINTER SHARING TOOLKIT  v1.0.0
 ============================================================
-  OS ini : Windows 10 64-bit
+  This OS : Windows 10 64-bit
+  Shared printers : none yet
 
-   1. HOST      - Bagikan printer dari PC ini
-   2. KLIEN     - Sambungkan ke printer yang dibagikan
-   3. DIAGNOSA  - Cek masalah sharing (read-only)
-   4. PERBAIKAN - Fix kompatibilitas Windows 7
-   5. ROLLBACK  - Kembalikan pengaturan host
-   0. Keluar
+   1. HOST      - Share a printer from this PC
+   2. CLIENT    - Connect to a shared printer
+   3. DIAGNOSE  - Check sharing problems (read-only)
+   4. REPAIR    - Fix Windows 7 compatibility
+   5. ROLLBACK  - Restore host settings
+   6. LOGS      - View recent logs & backups
+   7. HELP      - Quick guide & open README
+   8. LANGUAGE  - Switch language (ID/EN)
+   0. EXIT
 ```
 
 The menu detects your Windows version (7 / 10 / 11) and picks the right script, so you never have to remember parameters like `-PrinterName`, `-Server`, `-ShareName`, or `-AllowLegacyWin7`.
 
 > [!TIP]
-> - **HOST**: choose `1` → `2` to share a printer. Just pick the printer from the list and answer prompts such as *"Are there Windows 7 clients?"*.
+> - **HOST**: choose `1` → `2` to share a printer. Just pick the printer from the list and answer prompts such as *"Are there Windows 7 clients?"*. Use `1` → `4` to stop sharing (unshare).
 > - **CLIENT**: choose `2` → `2` to connect. For Windows 7 32-bit, use the *LocalPort* option and provide the `.inf` driver path.
 > - **DIAGNOSTICS**: choose `3` (safe, changes nothing).
+> - **LOGS**: choose `6` to list recent logs/backups, open the folder, or view the content.
+> - **LANGUAGE**: choose `8` to switch between Indonesian and English; the choice is remembered.
 > - The menu only **wraps** the original scripts in `host\`, `client\`, and `tools\`; manual PowerShell usage below still works exactly as before.
 
 ---
@@ -348,8 +358,22 @@ It performs three checks:
 Use `-FailOnWarning` to be stricter (warnings count as failures), or
 `-SkipLint` to skip the lint stage.
 
-GitHub Actions CI (`.github/workflows/ci.yml`) runs these checks automatically
-on every `push` and `pull request`.
+There is also a **Pester test suite** that verifies the menu logic, repository
+structure, and the quality checker:
+
+```powershell
+.\tests\Run-Tests.ps1
+```
+
+The tests run on both Pester 3.x (bundled with Windows PowerShell 5.1) and Pester 5/6.
+If Pester is not installed:
+
+```powershell
+Install-Module Pester -Scope CurrentUser -Force
+```
+
+GitHub Actions CI (`.github/workflows/ci.yml`) runs these checks and tests
+automatically on every `push` and `pull request`.
 
 ---
 
