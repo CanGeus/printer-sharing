@@ -1,0 +1,26 @@
+# EditorConfig - https://editorconfig.org
+# Menyeragamkan gaya penulisan antar editor tanpa memaksa alat tertentu.
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{cmd,bat}]
+# File batch harus CRLF agar aman dijalankan cmd.exe (terutama label/goto).
+end_of_line = crlf
+
+[*.ps1]
+# PowerShell 2.0 (Windows 7) salah membaca karakter non-ASCII tanpa BOM,
+# jadi script toolkit disimpan sebagai UTF-8 ber-BOM.
+charset = utf-8-bom
+
+[*.{yml,yaml,json,psd1}]
+indent_size = 2
+
+[*.md]
+# Markdown memakai dua spasi di akhir baris sebagai pemisah baris.
+trim_trailing_whitespace = false

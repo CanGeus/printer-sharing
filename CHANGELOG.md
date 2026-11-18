@@ -7,6 +7,19 @@ dan proyek ini memakai [Semantic Versioning](https://semver.org/lang/id/).
 
 ## [Unreleased]
 
+### Added
+
+- **Menu interaktif** diperluas:
+  - **LOG** - melihat daftar log/backup terbaru, membuka foldernya, dan menampilkan isi log.
+  - **BANTUAN** - panduan singkat dan tombol untuk membuka README.
+  - **BAHASA** - berganti bahasa Indonesia/English; pilihan disimpan.
+  - **Unshare** - berhenti membagikan printer langsung dari menu HOST.
+  - Status printer yang sedang dibagikan ditampilkan di header menu.
+- **Test Pester** (`tests/`) untuk logika menu, kelengkapan struktur repositori,
+  dan pemeriksa kualitas, plus runner `tests/Run-Tests.ps1`.
+- **`.editorconfig`** untuk menyeragamkan encoding, indentasi, dan akhir baris antar editor.
+- CI kini juga menjalankan test Pester (`test` job) selain lint.
+
 ## [1.0.0] - 2026-11-17
 
 Rilis publik pertama.

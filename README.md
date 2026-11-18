@@ -106,7 +106,11 @@ printer-share-toolkit/
 │   ├── 05-Rollback-Win7.ps1      # Mengembalikan perubahan Host Windows 7
 │   └── dev/
 │       └── Test-Scripts.ps1      # Cek sintaks, kompatibilitas PS 2.0, dan lint
-├── .github/workflows/ci.yml      # CI: lint otomatis saat push / pull request
+├── tests/                        # Test Pester (menu, struktur, pemeriksa kualitas)
+│   ├── Run-Tests.ps1             # Menjalankan seluruh test
+│   └── *.Tests.ps1
+├── .github/workflows/ci.yml      # CI: lint + test otomatis saat push / pull request
+├── .editorconfig                 # Gaya penulisan (encoding, indentasi, akhir baris)
 ├── CHANGELOG.md                  # Riwayat perubahan
 ├── VERSION                       # Nomor versi aplikasi
 ├── LICENSE                       # Lisensi MIT
@@ -142,24 +146,30 @@ Tidak ingin mengetik perintah panjang di PowerShell? Cukup pakai **menu interakt
 
 ```text
 ============================================================
-                 PRINTER SHARING TOOLKIT
+                 PRINTER SHARING TOOLKIT  v1.0.0
 ============================================================
   OS ini : Windows 10 64-bit
+  Printer dibagikan : belum ada
 
    1. HOST      - Bagikan printer dari PC ini
    2. KLIEN     - Sambungkan ke printer yang dibagikan
    3. DIAGNOSA  - Cek masalah sharing (read-only)
    4. PERBAIKAN - Fix kompatibilitas Windows 7
    5. ROLLBACK  - Kembalikan pengaturan host
-   0. Keluar
+   6. LOG       - Lihat log & backup terakhir
+   7. BANTUAN   - Panduan singkat & buka README
+   8. BAHASA    - Ganti bahasa (ID/EN)
+   0. KELUAR
 ```
 
 Menu otomatis mendeteksi versi Windows (7 / 10 / 11) dan memilih script yang tepat, sehingga Anda tidak perlu menghafal parameter seperti `-PrinterName`, `-Server`, `-ShareName`, atau `-AllowLegacyWin7`.
 
 > [!TIP]
-> - **HOST**: pilih menu `1` → `2` untuk membagikan printer. Anda cukup memilih printer dari daftar, lalu menjawab pertanyaan seperti *"Ada klien Windows 7?"*.
+> - **HOST**: pilih menu `1` → `2` untuk membagikan printer. Anda cukup memilih printer dari daftar, lalu menjawab pertanyaan seperti *"Ada klien Windows 7?"*. Menu `1` → `4` untuk berhenti membagikan (unshare).
 > - **KLIEN**: pilih menu `2` → `2` untuk menyambung. Khusus Windows 7 32-bit, gunakan pilihan *mode LocalPort* dan masukkan path driver `.inf`.
 > - **DIAGNOSA**: pilih menu `3` (aman, tidak mengubah apa pun).
+> - **LOG**: pilih menu `6` untuk melihat log/backup terbaru, membuka foldernya, atau menampilkan isinya.
+> - **BAHASA**: pilih menu `8` untuk berganti antara Bahasa Indonesia dan English; pilihan disimpan.
 > - Menu ini hanya **membungkus** script asli di folder `host\`, `client\`, dan `tools\`; pemakaian manual lewat PowerShell tetap tersedia seperti dijelaskan di bawah.
 
 ---
@@ -348,7 +358,21 @@ Pemeriksa ini melakukan tiga hal:
 Gunakan `-FailOnWarning` untuk memperketat (warning dianggap gagal), atau
 `-SkipLint` untuk melewati tahap lint.
 
-CI GitHub Actions (`.github/workflows/ci.yml`) menjalankan pemeriksaan ini
+Selain itu, tersedia **test Pester** untuk memverifikasi logika menu, kelengkapan
+struktur repositori, dan pemeriksa kualitas:
+
+```powershell
+.\tests\Run-Tests.ps1
+```
+
+Test berjalan di Pester 3.x (bawaan Windows PowerShell 5.1) maupun Pester 5.
+Bila Pester belum terpasang:
+
+```powershell
+Install-Module Pester -Scope CurrentUser -Force
+```
+
+CI GitHub Actions (`.github/workflows/ci.yml`) menjalankan pemeriksaan dan test ini
 otomatis pada setiap `push` dan `pull request`.
 
 ---
