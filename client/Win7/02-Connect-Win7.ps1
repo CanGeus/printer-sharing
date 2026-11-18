@@ -82,6 +82,64 @@ function Find-Printer {
     return $null
 }
 
+# Menyimpan kredensial ke Windows Credential Manager TANPA menaruh password di
+# command line. Cara lama (cmdkey /pass:...) membuat password terlihat di daftar
+# proses. Di sini dipakai CredWriteW dari advapi32.dll - cara yang sama yang
+# dipakai cmdkey secara internal - dengan password dikirim lewat memori.
+$script:CredentialApiSource = @'
+using System;
+using System.Runtime.InteropServices;
+
+public static class PrinterShareCredential {
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct CREDENTIAL {
+        public int Flags;
+        public int Type;
+        [MarshalAs(UnmanagedType.LPWStr)] public string TargetName;
+        [MarshalAs(UnmanagedType.LPWStr)] public string Comment;
+        public System.Runtime.InteropServices.ComTypes.FILETIME LastWritten;
+        public int CredentialBlobSize;
+        public IntPtr CredentialBlob;
+        public int Persist;
+        public int AttributeCount;
+        public IntPtr Attributes;
+        [MarshalAs(UnmanagedType.LPWStr)] public string TargetAlias;
+        [MarshalAs(UnmanagedType.LPWStr)] public string UserName;
+    }
+
+    [DllImport("advapi32.dll", EntryPoint = "CredWriteW", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern bool CredWrite(ref CREDENTIAL userCredential, int flags);
+}
+'@
+
+function Save-HostCredential {
+    param([string]$Computer, [System.Management.Automation.PSCredential]$Credential)
+
+    if (-not ('PrinterShareCredential' -as [type])) {
+        Add-Type -TypeDefinition $script:CredentialApiSource -ErrorAction Stop
+    }
+
+    $bytes = [System.Text.Encoding]::Unicode.GetBytes($Credential.GetNetworkCredential().Password)
+    $ptr = [System.Runtime.InteropServices.Marshal]::AllocHGlobal($bytes.Length)
+    try {
+        [System.Runtime.InteropServices.Marshal]::Copy($bytes, 0, $ptr, $bytes.Length)
+
+        $cred = New-Object 'PrinterShareCredential+CREDENTIAL'
+        $cred.Type = 2                      # CRED_TYPE_DOMAIN_PASSWORD
+        $cred.TargetName = 'Domain:target=' + $Computer
+        $cred.CredentialBlob = $ptr
+        $cred.CredentialBlobSize = $bytes.Length
+        $cred.Persist = 2                   # CRED_PERSIST_LOCAL_MACHINE
+        $cred.UserName = $Credential.UserName
+
+        if ([PrinterShareCredential]::CredWrite([ref]$cred, 0)) { return 0 }
+        return [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
+    }
+    finally {
+        [System.Runtime.InteropServices.Marshal]::ZeroFreeGlobalAllocUnicode($ptr)
+    }
+}
+
 function Show-Hints {
     Write-Host ''
     Write-Host 'Penyebab umum:' -ForegroundColor Yellow
@@ -162,8 +220,9 @@ if ($Server -ne '.' -and $Server -ne 'localhost' -and $Server -ne $env:COMPUTERN
 if ($SaveCredential) {
     if (-not $Credential) { $Credential = Get-Credential -Credential $null }
     if ($Credential -and -not $WhatIf) {
-        & cmdkey.exe ('/add:' + $Server) ('/user:' + $Credential.UserName) ('/pass:' + $Credential.GetNetworkCredential().Password) | Out-Null
-        Write-Ok 'Kredensial disimpan'
+        $rc = Save-HostCredential -Computer $Server -Credential $Credential
+        if ($rc -eq 0) { Write-Ok 'Kredensial disimpan (Credential Manager)' }
+        else { Write-Warn2 ('Gagal menyimpan kredensial (kode {0})' -f $rc) }
     }
 }
 

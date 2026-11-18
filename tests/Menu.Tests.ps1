@@ -140,3 +140,63 @@ Describe 'Menu.ps1 - printer' {
         Assert-True ((Test-IsAdmin) -is [bool])
     }
 }
+
+Describe 'Menu.ps1 - pemeriksaan awal' {
+    It 'mengembalikan daftar pemeriksaan untuk konteks Host' {
+        $checks = Test-Preflight -Context 'Host'
+        Assert-True ($checks.Count -ge 3) 'Pemeriksaan awal Host terlalu sedikit.'
+        foreach ($c in $checks) {
+            Assert-True (@('OK', 'WARN', 'FAIL') -contains $c.Status) ('Status tidak dikenal: ' + $c.Status)
+            Assert-True ($c.Name.Length -gt 0) 'Nama pemeriksaan kosong.'
+        }
+    }
+
+    It 'memeriksa konektivitas host pada konteks Client' {
+        $checks = Test-Preflight -Context 'Client' -Server $env:COMPUTERNAME
+        $server = @($checks | Where-Object { $_.Key -eq 'pfServer' })
+        Assert-Equal $server.Count 1
+    }
+
+    It 'melewati pemeriksaan host bila Server kosong' {
+        $checks = Test-Preflight -Context 'Client'
+        $server = @($checks | Where-Object { $_.Key -eq 'pfServer' })
+        Assert-Equal $server.Count 0
+    }
+
+    It 'memeriksa ketersediaan backup pada konteks Rollback' {
+        $checks = Test-Preflight -Context 'Rollback'
+        $backup = @($checks | Where-Object { $_.Key -eq 'pfBackup' })
+        Assert-Equal $backup.Count 1
+    }
+
+    It 'memeriksa jumlah printer pada konteks Host' {
+        $checks = Test-Preflight -Context 'Host'
+        $printer = @($checks | Where-Object { $_.Key -eq 'pfPrinter' })
+        Assert-Equal $printer.Count 1
+    }
+}
+
+Describe 'Menu.ps1 - verifikasi akhir' {
+    It 'Test-SharePresent mengembalikan boolean' {
+        Assert-True ((Test-SharePresent -ShareName 'PASTI-TIDAK-ADA-XYZ') -is [bool])
+    }
+
+    It 'Test-LocalPrinterMatch mengembalikan boolean' {
+        Assert-True ((Test-LocalPrinterMatch -Name 'PASTI-TIDAK-ADA-XYZ') -is [bool])
+    }
+
+    It 'Test-CompatFixApplied mengembalikan boolean' {
+        Assert-True ((Test-CompatFixApplied) -is [bool])
+    }
+
+    It 'Test-SpoolerRunning mengembalikan boolean' {
+        Assert-True ((Test-SpoolerRunning) -is [bool])
+    }
+
+    It 'mengenali printer yang memang sedang dibagikan' {
+        $shared = @(Get-SharedPrinters)
+        if ($shared.Count -gt 0) {
+            Assert-True (Test-SharePresent -PrinterName $shared[0].Name -ShareName $shared[0].ShareName)
+        }
+    }
+}

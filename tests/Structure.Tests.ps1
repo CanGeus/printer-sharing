@@ -67,4 +67,22 @@ Describe 'Struktur repositori' {
         $c = Get-Content -LiteralPath (Join-Path $RepoRoot 'README.en.md') -Raw
         Assert-Match $c 'Menu\.cmd'
     }
+
+    It 'batch Win7 tidak menerima password lewat command line' {
+        $c = Get-Content -LiteralPath (Join-Path $RepoRoot 'client\Win7\02-Connect-Win7.cmd') -Raw
+        Assert-NotMatch $c '%PPASS%'
+        Assert-Match $c '/user:%PUSER% \*'
+    }
+
+    It 'klien Win7 .ps1 menyimpan kredensial tanpa cmdkey /pass:' {
+        $c = Get-Content -LiteralPath (Join-Path $RepoRoot 'client\Win7\02-Connect-Win7.ps1') -Raw
+        Assert-NotMatch $c 'cmdkey\.exe'
+        Assert-Match $c 'CredWrite'
+    }
+
+    It 'menu mengoper user (bukan password) ke batch Win7' {
+        $c = Get-Content -LiteralPath (Join-Path $RepoRoot 'Menu.ps1') -Raw
+        Assert-Match $c '02-Connect-Win7\.cmd'
+        Assert-Match $c '\$server, \$share, \$user'
+    }
 }

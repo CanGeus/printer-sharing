@@ -52,6 +52,9 @@ Dibuat khusus untuk mengatasi error printer sharing Windows yang sering muncul a
 - **Penanganan Khusus Arsitektur Berbeda**: Menyediakan solusi `-Mode LocalPort` agar klien Windows 7 32-bit dapat mencetak ke Host 64-bit tanpa konflik driver.
 - **Aman untuk Diuji (*Dry-Run*)**: Mendukung parameter `-WhatIf` untuk simulasi sebelum konfigurasi diterapkan.
 - **Rollback Otomatis**: Setiap perubahan dicatat ke dalam jurnal backup JSON / teks sehingga sistem dapat dikembalikan ke keadaan awal kapan saja.
+- **Pemeriksaan Awal (*Pre-check*)**: sebelum menjalankan operasi, menu memeriksa hak Administrator, versi Windows, layanan *Print Spooler*, ketersediaan printer, konektivitas host (port 445), dan ketersediaan file backup. Bila ada masalah serius, operasi dibatalkan otomatis.
+- **Verifikasi Akhir Otomatis**: setelah operasi, menu memastikan hasilnya nyata — printer benar-benar dibagikan, terpasang di klien, atau nilai registry perbaikan sudah diterapkan.
+- **Tanpa Password di Command Line**: kredensial host diminta secara tersembunyi dan tidak pernah dikirim lewat argumen command line (tidak terlihat di daftar proses).
 
 ---
 
@@ -170,6 +173,8 @@ Menu otomatis mendeteksi versi Windows (7 / 10 / 11) dan memilih script yang tep
 > - **DIAGNOSA**: pilih menu `3` (aman, tidak mengubah apa pun).
 > - **LOG**: pilih menu `6` untuk melihat log/backup terbaru, membuka foldernya, atau menampilkan isinya.
 > - **BAHASA**: pilih menu `8` untuk berganti antara Bahasa Indonesia dan English; pilihan disimpan.
+> - **Pemeriksaan awal**: setiap operasi diawali pemeriksaan singkat (Administrator, Spooler, printer, konektivitas host, backup). Bila ada masalah serius, operasi dibatalkan otomatis.
+> - **Verifikasi akhir**: setelah operasi, menu menampilkan hasil pemeriksaan akhir (`[OK]`/`[WARN]`) agar Anda tahu operasinya benar-benar berhasil.
 > - Menu ini hanya **membungkus** script asli di folder `host\`, `client\`, dan `tools\`; pemakaian manual lewat PowerShell tetap tersedia seperti dijelaskan di bawah.
 
 ---
@@ -258,6 +263,12 @@ Bisa menggunakan script Batch biasa (cepat & tanpa repot) atau PowerShell:
   .\02-Connect-Win7.ps1 -Server NAMA-PC-HOST -ShareName EPSON-L120 -SetDefault -TestPage
   ```
 
+> [!NOTE]
+> **Password tidak lewat command line.** Script batch tidak menerima password sebagai argumen (agar tidak terlihat di daftar proses). Bila host meminta login, tambahkan nama pengguna sebagai argumen ketiga — password akan diminta langsung secara tersembunyi oleh `net use`:
+> ```cmd
+> 02-Connect-Win7.cmd NAMA-PC-HOST EPSON-L120 namauser
+> ```
+
 ---
 
 #### Kasus C: Klien Windows 7 (32-bit / x86)
@@ -334,6 +345,7 @@ Untuk mengembalikan konfigurasi Host ke kondisi awal:
 2. **Opt-in Compatibility**: Opsi pelonggaran keamanan seperti `-AllowLegacyWin7` dan `-AllowGuest` bersifat **opsional per switch**, dan tidak aktif secara default.
 3. **Isolasi Driver LocalPort**: Klien 32-bit tidak dipaksa mengambil driver dari Host 64-bit, melainkan memuat driver lokal terisolasi untuk stabilitas spooler.
 4. **Audit & Rollback Penuh**: Seluruh modifikasi registry, status layanan, dan rule firewall tersimpan dalam file cadangan JSON / teks yang dapat dipulihkan sewaktu-waktu.
+5. **Tanpa Password di Command Line**: kredensial host tidak pernah dikirim lewat argumen command line. Script batch meminta password secara tersembunyi (`net use ... *`), sedangkan `-SaveCredential` menyimpannya ke Windows Credential Manager lewat API `CredWrite` (bukan `cmdkey /pass:`), sehingga password tidak muncul di daftar proses.
 
 ---
 

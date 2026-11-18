@@ -52,6 +52,9 @@ Specifically built to eliminate recurring Windows printer sharing errors caused 
 - **Cross-Architecture Support**: Built-in `-Mode LocalPort` workflow allows 32-bit (x86) Windows 7 clients to print to 64-bit (x64) hosts without driver architecture conflicts.
 - **Dry-Run Mode (`-WhatIf`)**: Safely test and preview all changes before applying them.
 - **Automated Rollback Journal**: Saves state snapshots in JSON / text logs, allowing you to restore the system to its prior state with a single command.
+- **Pre-check**: before running an operation, the menu verifies Administrator rights, Windows version, the *Print Spooler* service, printer availability, host connectivity (port 445), and backup availability. Serious problems cancel the operation automatically.
+- **Automatic Final Verification**: after an operation, the menu confirms the real result — the printer is actually shared, installed on the client, or the repair registry value is applied.
+- **No Password on the Command Line**: host credentials are requested silently and are never passed as command-line arguments (so they never appear in the process list).
 
 ---
 
@@ -170,6 +173,8 @@ The menu detects your Windows version (7 / 10 / 11) and picks the right script, 
 > - **DIAGNOSTICS**: choose `3` (safe, changes nothing).
 > - **LOGS**: choose `6` to list recent logs/backups, open the folder, or view the content.
 > - **LANGUAGE**: choose `8` to switch between Indonesian and English; the choice is remembered.
+> - **Pre-check**: every operation starts with a short check (Administrator, Spooler, printer, host connectivity, backup). Serious problems cancel the operation automatically.
+> - **Final verification**: after an operation the menu shows the result (`[OK]`/`[WARN]`) so you know it truly succeeded.
 > - The menu only **wraps** the original scripts in `host\`, `client\`, and `tools\`; manual PowerShell usage below still works exactly as before.
 
 ---
@@ -258,6 +263,12 @@ You can use the simple batch file (no PowerShell required) or the PowerShell scr
   .\02-Connect-Win7.ps1 -Server HOST-PC-NAME -ShareName EPSON-L120 -SetDefault -TestPage
   ```
 
+> [!NOTE]
+> **No password on the command line.** The batch script never accepts a password as an argument (so it never appears in the process list). If the Host requires a login, pass the user name as the third argument — the password is then requested directly and silently by `net use`:
+> ```cmd
+> 02-Connect-Win7.cmd HOST-PC-NAME EPSON-L120 username
+> ```
+
 ---
 
 #### Scenario C: Windows 7 (32-bit / x86) Client
@@ -334,6 +345,7 @@ To revert all modifications back to their original state:
 2. **Opt-in Legacy Compatibility**: Compatibility relaxations such as `-AllowLegacyWin7` and `-AllowGuest` are strictly opt-in flags.
 3. **Driver Isolation via LocalPort**: 32-bit clients use local vendor drivers rather than pulling unsigned or mismatched drivers from the Host.
 4. **Complete Auditability & Rollback**: Every registry change, firewall rule adjustment, and service configuration is logged and fully reversible.
+5. **No Password on the Command Line**: host credentials are never passed as command-line arguments. The batch script requests the password silently (`net use ... *`), while `-SaveCredential` stores it in Windows Credential Manager via the `CredWrite` API (instead of `cmdkey /pass:`), so the password never shows up in the process list.
 
 ---
 
